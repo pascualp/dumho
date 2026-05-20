@@ -88,8 +88,8 @@ export function Repartidores() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-        <table className="w-full text-left border-collapse whitespace-nowrap min-w-[700px]">
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
               <th className="p-4">Nombre</th>
@@ -103,7 +103,7 @@ export function Repartidores() {
             {reps.map(r => (
               <tr key={r.id_repartidor} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                  <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
                     {r.nombre.charAt(0)}{r.apellidos.charAt(0)}
                   </span>
                   {r.nombre} {r.apellidos}
@@ -129,6 +129,40 @@ export function Repartidores() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {reps.map(r => (
+          <div key={r.id_repartidor} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+                  {r.nombre.charAt(0)}{r.apellidos.charAt(0)}
+                </span>
+                <div>
+                  <p className="font-medium text-slate-900">{r.nombre} {r.apellidos}</p>
+                  <p className="text-xs text-slate-500">{r.dni_nie}</p>
+                </div>
+              </div>
+              <button onClick={() => openEditModal(r)} className="text-slate-400 hover:text-blue-600 transition-colors p-2 shrink-0">
+                <Edit2 className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-3 border-t border-slate-100">
+              <div className="text-sm text-slate-600">
+                <span className="font-medium">Zona:</span> {r.zona || 'N/A'}
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${r.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+                {r.estado}
+              </span>
+            </div>
+          </div>
+        ))}
+        {reps.length === 0 && (
+          <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+            No hay repartidores registrados.
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

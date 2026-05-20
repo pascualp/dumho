@@ -80,8 +80,8 @@ export function Entregas() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-        <table className="w-full text-left border-collapse whitespace-nowrap min-w-[700px]">
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
               <th className="p-4">Fecha</th>
@@ -117,6 +117,42 @@ export function Entregas() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {entregas.map(e => (
+          <div key={e.id_entrega} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <ClipboardList className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">{e.nombre} {e.apellidos}</p>
+                  <p className="text-xs text-slate-500">{new Date(e.fecha_entrega).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
+                e.estado_entrega === 'Activa' ? 'bg-blue-100 text-blue-700' : 
+                e.estado_entrega === 'Cerrada' ? 'bg-green-100 text-green-700' : 
+                e.estado_entrega === 'Con incidencia' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {e.estado_entrega}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-1 pt-3 border-t border-slate-100">
+              <div className="text-sm text-slate-600">
+                <span className="font-medium text-slate-500">Resp:</span> {e.entregado_por}
+              </div>
+            </div>
+          </div>
+        ))}
+        {entregas.length === 0 && (
+          <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 flex flex-col items-center">
+            <ClipboardList className="w-8 h-8 text-slate-300 mb-2" />
+            No hay entregas registradas.
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

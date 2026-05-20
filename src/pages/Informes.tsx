@@ -128,7 +128,7 @@ export function Informes() {
             <div className="flex-1">
               <h3 className="font-semibold text-slate-900">{r.name}</h3>
               <p className="text-sm text-slate-500 mb-4">{r.desc}</p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button 
                   onClick={() => handleExportPDF(r.name, r.collection)}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors"

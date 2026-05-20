@@ -100,8 +100,8 @@ export function Incidencias() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-        <table className="w-full text-left border-collapse whitespace-nowrap min-w-[700px]">
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
               <th className="p-4">Fecha</th>
@@ -137,6 +137,49 @@ export function Incidencias() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {incidencias.map(i => (
+          <div key={i.id_incidencia} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">{i.tipo_incidencia}</p>
+                  <p className="text-xs text-slate-500">{new Date(...(i.fecha_incidencia ? [i.fecha_incidencia] : [])).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
+                i.estado_incidencia === 'Abierta' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+              }`}>
+                {i.estado_incidencia}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                <span className="block text-xs text-slate-500 mb-1">Repartidor</span>
+                <span className="text-sm font-medium text-slate-700 truncate block">
+                  {i.nombre ? `${i.nombre} ${i.apellidos}` : 'N/A'}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                <span className="block text-xs text-slate-500 mb-1">Material</span>
+                <span className="text-sm font-medium text-slate-700 truncate block">
+                  {i.nombre_material || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {incidencias.length === 0 && (
+          <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 flex flex-col items-center">
+            <AlertTriangle className="w-8 h-8 text-slate-300 mb-2" />
+            No hay incidencias registradas.
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
