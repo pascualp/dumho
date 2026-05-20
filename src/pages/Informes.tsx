@@ -13,6 +13,78 @@ export function Informes() {
     { id: 'incidencias', name: 'Informe de incidencias', desc: 'Control de pérdidas, daños y dinero de cambio.', collection: 'incidencias' },
   ];
 
+  const FORMATTERS: Record<string, { title: string, columns: { key: string, label: string, format?: (val: any, doc: any) => string }[] }> = {
+    materiales: {
+      title: 'Inventario de Materiales',
+      columns: [
+        { key: 'nombre_material', label: 'Material' },
+        { key: 'categoria', label: 'Categoría' },
+        { key: 'stock_disponible', label: 'Stock Disponible' },
+        { key: 'stock_asignado', label: 'Stock Asignado' },
+        { key: 'valor_reposicion', label: 'Valor Reposición (€)', format: (v) => v ? `€${Number(v).toFixed(2)}` : '€0.00' }
+      ]
+    },
+    repartidores: {
+      title: 'Listado de Repartidores',
+      columns: [
+        { key: 'nombre', label: 'Nombre Completo', format: (_, doc) => `${doc.nombre || ''} ${doc.apellidos || ''}`.trim() },
+        { key: 'dni_nie', label: 'DNI / NIE' },
+        { key: 'telefono', label: 'Teléfono' },
+        { key: 'zona', label: 'Zona/Ruta' },
+        { key: 'estado', label: 'Estado' }
+      ]
+    },
+    entregas: {
+      title: 'Registro de Entregas',
+      columns: [
+        { key: 'fecha_entrega', label: 'Fecha', format: (v) => v ? new Date(v).toLocaleDateString() : 'N/A' },
+        { key: 'estado_entrega', label: 'Estado' },
+        { key: 'entregado_por', label: 'Registrado por' },
+        { key: 'materiales', label: 'Materiales Entregados', format: (v) => Array.isArray(v) ? v.map(m => `Cant: ${m.cantidad}`).join(', ') : 'Ninguno' } // we dont have material name easily here without join, but quantity helps
+      ]
+    },
+    incidencias: {
+      title: 'Registro de Incidencias',
+      columns: [
+        { key: 'fecha_incidencia', label: 'Fecha', format: (v) => v ? new Date(v).toLocaleDateString() : 'N/A' },
+        { key: 'tipo_incidencia', label: 'Tipo de Incidencia' },
+        { key: 'estado_incidencia', label: 'Estado' },
+        { key: 'descripcion', label: 'Descripción' }
+      ]
+    }
+  };
+
+  const getFormattedData = (coll: string, docs: any[]) => {
+    const formatter = FORMATTERS[coll];
+    if (!formatter) {
+      // Fallback a columnas dinámicas si no hay formateador (ej. para colecciones nuevas)
+      const headersSet = new Set<string>();
+      docs.forEach(doc => Object.keys(doc).forEach(key => headersSet.add(key)));
+      const headers = Array.from(headersSet).filter(h => h !== 'firma' && h !== 'firma_receptor'); // excluir firmas largas
+      
+      const rows = docs.map(doc => headers.map(header => {
+        const val = doc[header];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object' && val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
+        if (Array.isArray(val)) return `[${val.length} items]`;
+        return String(val);
+      }));
+      return { title: coll.toUpperCase(), headers, rows };
+    }
+
+    const headers = formatter.columns.map(c => c.label);
+    const rows = docs.map(doc => formatter.columns.map(col => {
+      const val = doc[col.key];
+      if (col.format) return col.format(val, doc);
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'object' && val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
+      if (Array.isArray(val)) return `[${val.length} items]`;
+      return String(val);
+    }));
+
+    return { title: formatter.title, headers, rows };
+  };
+
   const generatePDFBlob = async (reportName: string, collectionName: string) => {
     const docPdf = new jsPDF('landscape');
     const collectionsToExport = collectionName === 'global' 
@@ -21,6 +93,8 @@ export function Informes() {
 
     let isFirstPage = true;
     let hasData = false;
+
+    // Precargar datos si es necesario (ej. para mapear IDs a nombres - opcional, por ahora usamos datos básicos)
 
     for (const coll of collectionsToExport) {
       const snapshot = await getDocs(collection(db, coll));
@@ -31,27 +105,24 @@ export function Informes() {
       isFirstPage = false;
       
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const { title, headers, rows } = getFormattedData(coll, docs);
+
+      // Cabecera del documento
+      docPdf.setFontSize(16);
+      docPdf.setTextColor(15, 23, 42); // slate-900
+      docPdf.text(`Dumoh - ${reportName}`, 14, 15);
       
-      const headersSet = new Set<string>();
-      docs.forEach(doc => Object.keys(doc).forEach(key => headersSet.add(key)));
-      const headers = Array.from(headersSet);
-
-      const rows = docs.map(doc => headers.map(header => {
-        const val = doc[header];
-        if (val === null || val === undefined) return '';
-        if (typeof val === 'object' && val.seconds) {
-           return new Date(val.seconds * 1000).toLocaleDateString();
-        }
-        return String(val);
-      }));
-
-      docPdf.text(`Dumoh - ${reportName} - ${coll.toUpperCase()}`, 14, 15);
+      docPdf.setFontSize(12);
+      docPdf.setTextColor(100, 116, 139); // slate-500
+      docPdf.text(title, 14, 22);
       
       autoTable(docPdf, {
         head: [headers],
         body: rows,
-        startY: 20,
-        styles: { fontSize: 8, cellPadding: 2 },
+        startY: 28,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold' }, // slate-100 bg, slate-600 text
+        alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
       });
     }
 
@@ -122,28 +193,19 @@ export function Informes() {
         
         hasData = true;
         const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const { title, headers, rows } = getFormattedData(coll, docs);
         
-        const headersSet = new Set<string>();
-        docs.forEach(doc => {
-          Object.keys(doc).forEach(key => headersSet.add(key));
-        });
-        const headers = Array.from(headersSet);
+        if (collectionName === 'global') csvRows.push(`--- TABLA: ${title.toUpperCase()} ---`);
+        csvRows.push(headers.map(h => `"${h}"`).join(',')); // Header row
         
-        if (collectionName === 'global') csvRows.push(`--- TABLA: ${coll.toUpperCase()} ---`);
-        csvRows.push(headers.join(',')); // Header row
-        
-        docs.forEach(doc => {
-          const row = headers.map(header => {
-            const val = doc[header];
+        rows.forEach(row => {
+          const csvRow = row.map((val: any) => {
             if (val === null || val === undefined) return '""';
-            if (typeof val === 'object' && val.seconds) {
-              return `"${new Date(val.seconds * 1000).toISOString()}"`;
-            }
             let stringVal = String(val);
             stringVal = stringVal.replace(/"/g, '""');
             return `"${stringVal}"`;
           });
-          csvRows.push(row.join(','));
+          csvRows.push(csvRow.join(','));
         });
         csvRows.push(''); // Empty line between tables
       }
