@@ -1,0 +1,8 @@
+{
+  "name": "Dumoh Logística - Gestión de Materiales",
+  "description": "Sistema de gestión de entregas, devoluciones e incidencias de material para repartidores, con stock interno y exportaciones en PDF, Excel y CSV.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

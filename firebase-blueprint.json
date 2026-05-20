@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role",
+      "type": "object",
+      "properties": {
+        "nombre": { "type": "string" },
+        "email": { "type": "string" },
+        "rol": { "type": "string", "enum": ["Administrador", "Encargado", "Repartidor", "Supervisor"] },
+        "estado": { "type": "string", "enum": ["Activo", "Inactivo", "Bloqueado"] },
+        "fecha_creacion": { "type": "number" },
+        "ultimo_acceso": { "type": "number" }
+      },
+      "required": ["nombre", "email", "rol", "estado"]
+    },
+    "Repartidor": {
+      "title": "Repartidor",
+      "description": "Repartidor profile",
+      "type": "object",
+      "properties": {
+        "id_usuario": { "type": "string" },
+        "nombre": { "type": "string" },
+        "apellidos": { "type": "string" },
+        "dni_nie": { "type": "string" },
+        "telefono": { "type": "string" },
+        "email": { "type": "string" },
+        "fecha_inicio": { "type": "number" },
+        "zona": { "type": "string" },
+        "estado": { "type": "string", "enum": ["Activo", "Pausado", "Baja"] },
+        "observaciones": { "type": "string" },
+        "fecha_creacion": { "type": "number" },
+        "fecha_actualizacion": { "type": "number" }
+      },
+      "required": ["nombre", "apellidos", "dni_nie", "estado", "fecha_creacion", "fecha_actualizacion"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Material inventory",
+      "type": "object",
+      "properties": {
+        "nombre_material": { "type": "string" },
+        "categoria": { "type": "string" },
+        "descripcion": { "type": "string" },
+        "requiere_devolucion": { "type": "number", "enum": [0, 1] },
+        "valor_reposicion": { "type": "number" },
+        "stock_total": { "type": "number" },
+        "stock_disponible": { "type": "number" },
+        "stock_asignado": { "type": "number" },
+        "stock_danado": { "type": "number" },
+        "stock_perdido": { "type": "number" },
+        "stock_minimo": { "type": "number" },
+        "estado": { "type": "string", "enum": ["Disponible", "Agotado", "Retirado"] },
+        "observaciones": { "type": "string" },
+        "fecha_creacion": { "type": "number" },
+        "fecha_actualizacion": { "type": "number" }
+      },
+      "required": ["nombre_material", "categoria", "requiere_devolucion", "valor_reposicion", "stock_total", "stock_disponible", "stock_asignado", "estado", "fecha_creacion", "fecha_actualizacion"]
+    },
+    "Entrega": {
+      "title": "Entrega",
+      "description": "Entrega of material to a repartidor",
+      "type": "object",
+      "properties": {
+        "id_repartidor": { "type": "string" },
+        "fecha_entrega": { "type": "number" },
+        "entregado_por": { "type": "string" },
+        "ruta_zona": { "type": "string" },
+        "estado_entrega": { "type": "string", "enum": ["Pendiente de firma", "Firmada", "Activa", "Cerrada", "Con incidencia", "Cancelada"] },
+        "firma_repartidor": { "type": "string" },
+        "firma_empresa": { "type": "string" },
+        "fecha_firma": { "type": "number" },
+        "observaciones": { "type": "string" },
+        "documento_pdf": { "type": "string" },
+        "fecha_creacion": { "type": "number" },
+        "fecha_actualizacion": { "type": "number" }
+      },
+      "required": ["id_repartidor", "fecha_entrega", "entregado_por", "estado_entrega", "fecha_creacion", "fecha_actualizacion"]
+    },
+    "DetalleEntrega": {
+      "title": "DetalleEntrega",
+      "description": "Details of materials delivered",
+      "type": "object",
+      "properties": {
+        "id_entrega": { "type": "string" },
+        "id_material": { "type": "string" },
+        "cantidad_entregada": { "type": "number" },
+        "estado_inicial": { "type": "string" },
+        "numero_serie_imei": { "type": "string" },
+        "valor_unitario": { "type": "number" },
+        "valor_total": { "type": "number" },
+        "requiere_devolucion": { "type": "number" },
+        "observaciones": { "type": "string" }
+      },
+      "required": ["id_entrega", "id_material", "cantidad_entregada", "valor_unitario", "valor_total"]
+    },
+    "Incidencia": {
+      "title": "Incidencia",
+      "description": "Incident record",
+      "type": "object",
+      "properties": {
+        "id_repartidor": { "type": "string" },
+        "id_entrega": { "type": "string" },
+        "id_material": { "type": "string" },
+        "fecha_incidencia": { "type": "number" },
+        "tipo_incidencia": { "type": "string" },
+        "cantidad_afectada": { "type": "number" },
+        "valor_unitario": { "type": "number" },
+        "valor_total_incidencia": { "type": "number" },
+        "responsable": { "type": "string" },
+        "estado_incidencia": { "type": "string", "enum": ["Abierta", "En revisión", "Cerrada", "Descartada"] },
+        "accion_tomada": { "type": "string" },
+        "foto_evidencia": { "type": "string" },
+        "fecha_cierre": { "type": "number" },
+        "observaciones": { "type": "string" }
+      },
+      "required": ["fecha_incidencia", "tipo_incidencia", "estado_incidencia"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles aligned with Firebase auth UIDs"
+    },
+    "repartidores/{repartidorId}": {
+      "schema": { "$ref": "#/entities/Repartidor" },
+      "description": "Repartidores collection"
+    },
+    "materiales/{materialId}": {
+      "schema": { "$ref": "#/entities/Material" },
+      "description": "Material options"
+    },
+    "entregas/{entregaId}": {
+      "schema": { "$ref": "#/entities/Entrega" },
+      "description": "Entregas records"
+    },
+    "entregas/{entregaId}/detalles/{detalleId}": {
+      "schema": { "$ref": "#/entities/DetalleEntrega" },
+      "description": "Detalles for a given entrega"
+    },
+    "incidencias/{incidenciaId}": {
+      "schema": { "$ref": "#/entities/Incidencia" },
+      "description": "Incidencias collection"
+    }
+  }
+}
