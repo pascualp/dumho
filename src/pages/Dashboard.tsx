@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Users, Package, AlertTriangle, FileText } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { ImportDataButton } from '../components/ImportDataButton';
 
 interface DashboardMetrics {
   repsActivos: number;
@@ -53,9 +54,12 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-        <p className="text-slate-500">Resumen del estado del material y entregas activas.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+          <p className="text-slate-500">Resumen del estado del material y entregas activas.</p>
+        </div>
+        <ImportDataButton />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
