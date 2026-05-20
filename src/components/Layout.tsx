@@ -1,6 +1,6 @@
 import { Outlet, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Package, Users, Home, ClipboardList, AlertTriangle, LogOut, FileText, Menu, X, HelpCircle } from 'lucide-react';
+import { Package, Users, Home, ClipboardList, AlertTriangle, LogOut, FileText, Menu, X, HelpCircle, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -85,8 +85,25 @@ export function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50 relative z-10 w-full">
-        <Outlet />
+      <main className="flex-1 overflow-hidden bg-slate-50 flex flex-col relative z-10 w-full">
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center gap-3 shrink-0">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors" 
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="text-sm font-medium text-slate-500 flex items-center gap-2">
+            <span className="hidden sm:inline">Navegación / </span>
+            <span className="text-slate-900 capitalize">
+              {location.pathname === '/' ? 'Dashboard' : location.pathname.substring(1).replace('-', ' ')}
+            </span>
+          </div>
+        </header>
+        <div className="p-4 sm:p-8 flex-1 overflow-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
