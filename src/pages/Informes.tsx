@@ -6,19 +6,29 @@ import autoTable from 'jspdf-autotable';
 
 export function Informes() {
   const reports = [
+    { id: 'global', name: 'Informe general del sistema', desc: 'Resumen completo de materiales, repartidores, entregas e incidencias.', collection: 'global' },
     { id: 'materiales', name: 'Informe general de materiales', desc: 'Inventario, stock disponible y valor asignado.', collection: 'materiales' },
     { id: 'repartidores', name: 'Informe por repartidor', desc: 'Material asignado y pendiente por repartidor.', collection: 'repartidores' },
     { id: 'entregas', name: 'Informe de entregas', desc: 'Historial completo de entregas y firmas.', collection: 'entregas' },
     { id: 'incidencias', name: 'Informe de incidencias', desc: 'Control de pérdidas, daños y dinero de cambio.', collection: 'incidencias' },
   ];
 
-  const handleExportPDF = async (reportName: string, collectionName: string) => {
-    try {
-      const snapshot = await getDocs(collection(db, collectionName));
-      if (snapshot.empty) {
-        alert('No hay datos para exportar.');
-        return;
-      }
+  const generatePDFBlob = async (reportName: string, collectionName: string) => {
+    const docPdf = new jsPDF('landscape');
+    const collectionsToExport = collectionName === 'global' 
+        ? ['materiales', 'repartidores', 'entregas', 'incidencias'] 
+        : [collectionName];
+
+    let isFirstPage = true;
+    let hasData = false;
+
+    for (const coll of collectionsToExport) {
+      const snapshot = await getDocs(collection(db, coll));
+      if (snapshot.empty) continue;
+      
+      hasData = true;
+      if (!isFirstPage) docPdf.addPage('landscape');
+      isFirstPage = false;
       
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
@@ -35,8 +45,7 @@ export function Informes() {
         return String(val);
       }));
 
-      const docPdf = new jsPDF('landscape');
-      docPdf.text(`Dumoh - ${reportName}`, 14, 15);
+      docPdf.text(`Dumoh - ${reportName} - ${coll.toUpperCase()}`, 14, 15);
       
       autoTable(docPdf, {
         head: [headers],
@@ -44,57 +53,105 @@ export function Informes() {
         startY: 20,
         styles: { fontSize: 8, cellPadding: 2 },
       });
+    }
 
-      docPdf.save(`${collectionName}_report_${new Date().getTime()}.pdf`);
-    } catch (err) {
+    if (!hasData) {
+      throw new Error('No hay datos para exportar.');
+    }
+
+    return docPdf.output('blob');
+  };
+
+  const handleExportPDF = async (reportName: string, collectionName: string) => {
+    try {
+      const pdfBlob = await generatePDFBlob(reportName, collectionName);
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${collectionName}_report_${new Date().getTime()}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
       console.error(err);
-      alert('Error generando PDF.');
+      alert(err.message || 'Error generando PDF.');
     }
   };
 
-  const handleEmail = (reportName: string) => {
-    const subject = encodeURIComponent(`Dumoh - ${reportName}`);
-    const body = encodeURIComponent(`Hola,\n\nAdjunto a este correo encontrarás el ${reportName} descargado desde el sistema Dumoh.\n\n[Por favor, recuerde adjuntar el archivo PDF o CSV descargado a este correo antes de enviarlo]\n\nSaludos.`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  const handleShare = async (reportName: string, collectionName: string) => {
+    try {
+      const pdfBlob = await generatePDFBlob(reportName, collectionName);
+      const file = new File([pdfBlob], `${collectionName}_report_${new Date().getTime()}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Dumoh - ${reportName}`,
+          text: `Hola,\n\nAdjunto el ${reportName} descargado desde Dumoh.`,
+        });
+      } else {
+        // Fallback
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        const subject = encodeURIComponent(`Dumoh - ${reportName}`);
+        const body = encodeURIComponent(`Hola,\n\nAdjunto a este correo encontrarás el ${reportName} descargado desde el sistema Dumoh.\n\n[Por favor, recuerde adjuntar el archivo PDF descargado a este correo antes de enviarlo]\n\nSaludos.`);
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error al intentar compartir el documento.');
+    }
   };
 
   const handleExportCSV = async (collectionName: string) => {
     try {
-      const snapshot = await getDocs(collection(db, collectionName));
-      if (snapshot.empty) {
+      const collectionsToExport = collectionName === 'global' 
+          ? ['materiales', 'repartidores', 'entregas', 'incidencias'] 
+          : [collectionName];
+
+      let csvRows: string[] = [];
+      let hasData = false;
+
+      for (const coll of collectionsToExport) {
+        const snapshot = await getDocs(collection(db, coll));
+        if (snapshot.empty) continue;
+        
+        hasData = true;
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const headersSet = new Set<string>();
+        docs.forEach(doc => {
+          Object.keys(doc).forEach(key => headersSet.add(key));
+        });
+        const headers = Array.from(headersSet);
+        
+        if (collectionName === 'global') csvRows.push(`--- TABLA: ${coll.toUpperCase()} ---`);
+        csvRows.push(headers.join(',')); // Header row
+        
+        docs.forEach(doc => {
+          const row = headers.map(header => {
+            const val = doc[header];
+            if (val === null || val === undefined) return '""';
+            if (typeof val === 'object' && val.seconds) {
+              return `"${new Date(val.seconds * 1000).toISOString()}"`;
+            }
+            let stringVal = String(val);
+            stringVal = stringVal.replace(/"/g, '""');
+            return `"${stringVal}"`;
+          });
+          csvRows.push(row.join(','));
+        });
+        csvRows.push(''); // Empty line between tables
+      }
+
+      if (!hasData) {
         alert('No hay datos para exportar.');
         return;
       }
-      
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Get all unique keys for headers
-      const headersSet = new Set<string>();
-      docs.forEach(doc => {
-        Object.keys(doc).forEach(key => headersSet.add(key));
-      });
-      const headers = Array.from(headersSet);
-      
-      // Create CSV content
-      const csvRows = [];
-      csvRows.push(headers.join(',')); // Header row
-      
-      docs.forEach(doc => {
-        const row = headers.map(header => {
-          const val = doc[header];
-          // Basic formatting
-          if (val === null || val === undefined) return '""';
-          if (typeof val === 'object' && val.seconds) {
-            // Firestore timestamp
-            return `"${new Date(val.seconds * 1000).toISOString()}"`;
-          }
-          let stringVal = String(val);
-          // Escape quotes
-          stringVal = stringVal.replace(/"/g, '""');
-          return `"${stringVal}"`;
-        });
-        csvRows.push(row.join(','));
-      });
       
       const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -106,6 +163,7 @@ export function Informes() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
       alert('Error exportando datos.');
@@ -142,7 +200,7 @@ export function Informes() {
                   <Download className="w-3 h-3" /> CSV
                 </button>
                 <button 
-                   onClick={() => handleEmail(r.name)}
+                   onClick={() => handleShare(r.name, r.collection)}
                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors ml-auto"
                 >
                   <Mail className="w-3 h-3" /> Enviar Mail
