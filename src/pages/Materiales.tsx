@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Package, Plus, X } from 'lucide-react';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Package, Plus, X, Edit2 } from 'lucide-react';
+import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export function Materiales() {
   const [materiales, setMateriales] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nombre_material: '',
     categoria: 'Protección',
@@ -25,18 +26,52 @@ export function Materiales() {
     return () => unsub();
   }, []);
 
+  const openCreateModal = () => {
+    setEditingId(null);
+    setFormData({
+      nombre_material: '',
+      categoria: 'Protección',
+      requiere_devolucion: 1,
+      valor_reposicion: 0,
+      stock_total: 0
+    });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (mat: any) => {
+    setEditingId(mat.id_material);
+    setFormData({
+      nombre_material: mat.nombre_material || '',
+      categoria: mat.categoria || 'Protección',
+      requiere_devolucion: mat.requiere_devolucion !== undefined ? mat.requiere_devolucion : 1,
+      valor_reposicion: mat.valor_reposicion || 0,
+      stock_total: mat.stock_total || 0,
+    });
+    setIsModalOpen(true);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'materiales'), {
-        ...formData,
-        stock_disponible: formData.stock_total,
-        stock_asignado: 0,
-        estado: 'Disponible',
-        fecha_creacion: serverTimestamp(),
-        fecha_actualizacion: serverTimestamp(),
-      });
+      if (editingId) {
+        // Obtenemos el material original para calcular la diferencia de stock si stock_total cambió.
+        // Simulamos un approach simple donde actualizamos los totales.
+        await updateDoc(doc(db, 'materiales', editingId), {
+          ...formData,
+          fecha_actualizacion: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(db, 'materiales'), {
+          ...formData,
+          stock_disponible: formData.stock_total,
+          stock_asignado: 0,
+          estado: 'Disponible',
+          fecha_creacion: serverTimestamp(),
+          fecha_actualizacion: serverTimestamp(),
+        });
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         nombre_material: '',
         categoria: 'Protección',
@@ -58,7 +93,7 @@ export function Materiales() {
           <p className="text-slate-500 max-w-sm">Inventario y control de stock.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 bg-slate-900 text-white w-full sm:w-auto justify-center px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
         >
           <Plus className="w-5 h-5" /> Nuevo Material
@@ -74,6 +109,7 @@ export function Materiales() {
               <th className="p-4">Stock Disp.</th>
               <th className="p-4">Stock Asignado</th>
               <th className="p-4">Valor Reposición</th>
+              <th className="p-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -91,8 +127,21 @@ export function Materiales() {
                 </td>
                 <td className="p-4 text-slate-600">{m.stock_asignado}</td>
                 <td className="p-4 text-slate-600">€{m.valor_reposicion.toFixed(2)}</td>
+                <td className="p-4 text-right">
+                  <button onClick={() => openEditModal(m)} className="text-slate-400 hover:text-blue-600 transition-colors p-2">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             ))}
+            {materiales.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-500 flex flex-col items-center">
+                  <Package className="w-8 h-8 text-slate-300 mb-2" />
+                  No hay materiales registrados.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -101,7 +150,9 @@ export function Materiales() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">Registrar Material</h2>
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingId ? 'Editar Material' : 'Registrar Material'}
+              </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-6 h-6" />
               </button>

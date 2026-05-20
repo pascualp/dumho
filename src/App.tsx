@@ -7,6 +7,7 @@ import { Materiales } from './pages/Materiales';
 import { Entregas } from './pages/Entregas';
 import { Incidencias } from './pages/Incidencias';
 import { Informes } from './pages/Informes';
+import { Manual } from './pages/Manual';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/entregas" element={<Entregas />} />
           <Route path="/incidencias" element={<Incidencias />} />
           <Route path="/informes" element={<Informes />} />
+          <Route path="/manual" element={<Manual />} />
           <Route path="*" element={<div className="p-8"><h1 className="text-2xl font-bold">En Construcción</h1><p className="text-slate-500 mt-2">Esta sección será implementada pronto acorde a las especificaciones solicitadas.</p></div>} />
         </Route>
       </Routes>

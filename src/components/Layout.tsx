@@ -1,6 +1,6 @@
 import { Outlet, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Package, Users, Home, ClipboardList, AlertTriangle, LogOut, FileText, Menu, X } from 'lucide-react';
+import { Package, Users, Home, ClipboardList, AlertTriangle, LogOut, FileText, Menu, X, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -32,6 +32,7 @@ export function Layout() {
     { to: '/entregas', icon: ClipboardList, label: 'Entregas & Devoluciones' },
     { to: '/incidencias', icon: AlertTriangle, label: 'Incidencias' },
     { to: '/informes', icon: FileText, label: 'Informes' },
+    { to: '/manual', icon: HelpCircle, label: 'Ayuda (Manual)' },
   ];
 
   return (

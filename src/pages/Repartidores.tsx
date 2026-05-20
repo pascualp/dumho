@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Users, Plus, X } from 'lucide-react';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Users, Plus, X, Edit2 } from 'lucide-react';
+import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export function Repartidores() {
   const [reps, setReps] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
@@ -26,16 +27,43 @@ export function Repartidores() {
     return () => unsub();
   }, []);
 
+  const openCreateModal = () => {
+    setEditingId(null);
+    setFormData({ nombre: '', apellidos: '', dni_nie: '', telefono: '', email: '', zona: '' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (rep: any) => {
+    setEditingId(rep.id_repartidor);
+    setFormData({
+      nombre: rep.nombre || '',
+      apellidos: rep.apellidos || '',
+      dni_nie: rep.dni_nie || '',
+      telefono: rep.telefono || '',
+      email: rep.email || '',
+      zona: rep.zona || ''
+    });
+    setIsModalOpen(true);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'repartidores'), {
-        ...formData,
-        estado: 'Activo',
-        fecha_creacion: serverTimestamp(),
-        fecha_actualizacion: serverTimestamp(),
-      });
+      if (editingId) {
+        await updateDoc(doc(db, 'repartidores', editingId), {
+          ...formData,
+          fecha_actualizacion: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(db, 'repartidores'), {
+          ...formData,
+          estado: 'Activo',
+          fecha_creacion: serverTimestamp(),
+          fecha_actualizacion: serverTimestamp(),
+        });
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         nombre: '', apellidos: '', dni_nie: '', telefono: '', email: '', zona: ''
       });
@@ -53,7 +81,7 @@ export function Repartidores() {
           <p className="text-slate-500 max-w-sm">Gestión de personal de reparto.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 bg-slate-900 text-white w-full sm:w-auto justify-center px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
         >
           <Plus className="w-5 h-5" /> Nuevo Repartidor
@@ -68,6 +96,7 @@ export function Repartidores() {
               <th className="p-4">DNI/NIE</th>
               <th className="p-4">Zona</th>
               <th className="p-4">Estado</th>
+              <th className="p-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -86,11 +115,16 @@ export function Repartidores() {
                     {r.estado}
                   </span>
                 </td>
+                <td className="p-4 text-right">
+                  <button onClick={() => openEditModal(r)} className="text-slate-400 hover:text-blue-600 transition-colors p-2">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             ))}
             {reps.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-slate-500">No hay repartidores registrados.</td>
+                <td colSpan={5} className="p-8 text-center text-slate-500">No hay repartidores registrados.</td>
               </tr>
             )}
           </tbody>
@@ -101,7 +135,9 @@ export function Repartidores() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h2 className="text-xl font-bold text-slate-900">Registrar Repartidor</h2>
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingId ? 'Editar Repartidor' : 'Registrar Repartidor'}
+              </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-6 h-6" />
               </button>

@@ -1,13 +1,68 @@
 import { Download, FileText } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export function Informes() {
   const reports = [
-    { id: 'general', name: 'Informe general de materiales', desc: 'Inventario, stock disponible y valor asignado.' },
-    { id: 'repartidores', name: 'Informe por repartidor', desc: 'Material asignado y pendiente por repartidor.' },
-    { id: 'entregas', name: 'Informe de entregas', desc: 'Historial completo de entregas y firmas.' },
-    { id: 'devoluciones', name: 'Informe de devoluciones', desc: 'Historial de devoluciones y diferencias.' },
-    { id: 'incidencias', name: 'Informe de incidencias', desc: 'Control de pérdidas, daños y dinero de cambio.' },
+    { id: 'materiales', name: 'Informe general de materiales', desc: 'Inventario, stock disponible y valor asignado.', collection: 'materiales' },
+    { id: 'repartidores', name: 'Informe por repartidor', desc: 'Material asignado y pendiente por repartidor.', collection: 'repartidores' },
+    { id: 'entregas', name: 'Informe de entregas', desc: 'Historial completo de entregas y firmas.', collection: 'entregas' },
+    { id: 'incidencias', name: 'Informe de incidencias', desc: 'Control de pérdidas, daños y dinero de cambio.', collection: 'incidencias' },
   ];
+
+  const handleExportCSV = async (collectionName: string) => {
+    try {
+      const snapshot = await getDocs(collection(db, collectionName));
+      if (snapshot.empty) {
+        alert('No hay datos para exportar.');
+        return;
+      }
+      
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Get all unique keys for headers
+      const headersSet = new Set<string>();
+      docs.forEach(doc => {
+        Object.keys(doc).forEach(key => headersSet.add(key));
+      });
+      const headers = Array.from(headersSet);
+      
+      // Create CSV content
+      const csvRows = [];
+      csvRows.push(headers.join(',')); // Header row
+      
+      docs.forEach(doc => {
+        const row = headers.map(header => {
+          const val = doc[header];
+          // Basic formatting
+          if (val === null || val === undefined) return '""';
+          if (typeof val === 'object' && val.seconds) {
+            // Firestore timestamp
+            return `"${new Date(val.seconds * 1000).toISOString()}"`;
+          }
+          let stringVal = String(val);
+          // Escape quotes
+          stringVal = stringVal.replace(/"/g, '""');
+          return `"${stringVal}"`;
+        });
+        csvRows.push(row.join(','));
+      });
+      
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${collectionName}_report_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error(err);
+      alert('Error exportando datos.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -26,13 +81,16 @@ export function Informes() {
               <h3 className="font-semibold text-slate-900">{r.name}</h3>
               <p className="text-sm text-slate-500 mb-4">{r.desc}</p>
               <div className="flex gap-2">
-                <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
+                <button 
+                  onClick={() => alert('Función de PDF en desarrollo...')}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+                >
                   <Download className="w-3 h-3" /> PDF
                 </button>
-                <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors">
-                  <Download className="w-3 h-3" /> Excel
-                </button>
-                <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors">
+                <button 
+                   onClick={() => handleExportCSV(r.collection)}
+                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                >
                   <Download className="w-3 h-3" /> CSV
                 </button>
               </div>
