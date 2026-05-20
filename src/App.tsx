@@ -1,4 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { useAuthStore } from './store/authStore';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -10,6 +15,46 @@ import { Informes } from './pages/Informes';
 import { Manual } from './pages/Manual';
 
 export default function App() {
+  const { setUser } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          let role = 'Encargado';
+          let nombre = user.displayName || user.email?.split('@')[0] || 'Usuario';
+          
+          if (userDoc.exists()) {
+            role = userDoc.data().rol || 'Encargado';
+            nombre = userDoc.data().nombre || nombre;
+          }
+
+          setUser({
+            id_usuario: user.uid,
+            email: user.email || '',
+            nombre,
+            rol: role as any
+          });
+        } catch (err) {
+          console.error("Error fetching user role", err);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, [setUser]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-500">Cargando...</div>;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
