@@ -1,6 +1,8 @@
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, Mail } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function Informes() {
   const reports = [
@@ -9,6 +11,52 @@ export function Informes() {
     { id: 'entregas', name: 'Informe de entregas', desc: 'Historial completo de entregas y firmas.', collection: 'entregas' },
     { id: 'incidencias', name: 'Informe de incidencias', desc: 'Control de pérdidas, daños y dinero de cambio.', collection: 'incidencias' },
   ];
+
+  const handleExportPDF = async (reportName: string, collectionName: string) => {
+    try {
+      const snapshot = await getDocs(collection(db, collectionName));
+      if (snapshot.empty) {
+        alert('No hay datos para exportar.');
+        return;
+      }
+      
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const headersSet = new Set<string>();
+      docs.forEach(doc => Object.keys(doc).forEach(key => headersSet.add(key)));
+      const headers = Array.from(headersSet);
+
+      const rows = docs.map(doc => headers.map(header => {
+        const val = doc[header];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object' && val.seconds) {
+           return new Date(val.seconds * 1000).toLocaleDateString();
+        }
+        return String(val);
+      }));
+
+      const docPdf = new jsPDF('landscape');
+      docPdf.text(`Dumoh - ${reportName}`, 14, 15);
+      
+      autoTable(docPdf, {
+        head: [headers],
+        body: rows,
+        startY: 20,
+        styles: { fontSize: 8, cellPadding: 2 },
+      });
+
+      docPdf.save(`${collectionName}_report_${new Date().getTime()}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('Error generando PDF.');
+    }
+  };
+
+  const handleEmail = (reportName: string) => {
+    const subject = encodeURIComponent(`Dumoh - ${reportName}`);
+    const body = encodeURIComponent(`Hola,\n\nAdjunto a este correo encontrarás el ${reportName} descargado desde el sistema Dumoh.\n\n[Por favor, recuerde adjuntar el archivo PDF o CSV descargado a este correo antes de enviarlo]\n\nSaludos.`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
 
   const handleExportCSV = async (collectionName: string) => {
     try {
@@ -82,7 +130,7 @@ export function Informes() {
               <p className="text-sm text-slate-500 mb-4">{r.desc}</p>
               <div className="flex gap-2">
                 <button 
-                  onClick={() => alert('Función de PDF en desarrollo...')}
+                  onClick={() => handleExportPDF(r.name, r.collection)}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
                 >
                   <Download className="w-3 h-3" /> PDF
@@ -92,6 +140,12 @@ export function Informes() {
                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
                 >
                   <Download className="w-3 h-3" /> CSV
+                </button>
+                <button 
+                   onClick={() => handleEmail(r.name)}
+                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors ml-auto"
+                >
+                  <Mail className="w-3 h-3" /> Enviar Mail
                 </button>
               </div>
             </div>
