@@ -208,8 +208,8 @@ export function Entregas() {
                 <td className="p-4 text-slate-900 font-medium">{new Date(e.fecha_entrega).toLocaleDateString()}</td>
                 <td className="p-4 text-slate-600">
                   <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
-                    <span className="text-lg group-hover:scale-110 transition-transform" title={e.nombre}>
-                      <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-1 w-8 h-8 flex items-center justify-center shrink-0 shadow-sm" />
+                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform" title={e.nombre}>
+                      <User className="w-4 h-4 text-slate-500" fill="currentColor" />
                     </span>
                     <span className="font-medium group-hover:underline">{e.nombre} {e.apellidos}</span>
                   </Link>
@@ -284,7 +284,7 @@ export function Entregas() {
             <div className="flex justify-between items-start">
               <Link to={`/repartidores`} className="flex items-center gap-3 group">
                 <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
-                  <User className="w-5 h-5 text-slate-500" />
+                  <User className="w-5 h-5 text-slate-500" fill="currentColor" />
                 </div>
                 <div>
                   <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{e.nombre} {e.apellidos}</p>

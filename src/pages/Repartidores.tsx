@@ -123,8 +123,8 @@ export function Repartidores() {
               .map(r => (
               <tr key={r.id_repartidor} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-lg shrink-0 shadow-sm" title={r.nombre}>
-                    <User className="w-4 h-4 text-slate-500" />
+                  <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 shadow-sm" title={r.nombre}>
+                    <User className="w-4 h-4 text-slate-500" fill="currentColor" />
                   </span>
                   {r.nombre} {r.apellidos}
                 </td>
@@ -159,8 +159,8 @@ export function Repartidores() {
           <div key={r.id_repartidor} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-2xl shrink-0 shadow-sm">
-                  <User className="w-5 h-5 text-slate-500" />
+                <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 shadow-sm">
+                  <User className="w-5 h-5 text-slate-500" fill="currentColor" />
                 </span>
                 <div>
                   <p className="font-medium text-slate-900">{r.nombre} {r.apellidos}</p>

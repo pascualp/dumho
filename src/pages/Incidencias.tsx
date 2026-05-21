@@ -149,8 +149,8 @@ export function Incidencias() {
                 <td className="p-4 text-slate-600">
                   {i.nombre ? (
                     <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
-                      <span className="text-lg group-hover:scale-110 transition-transform" title={i.nombre}>
-                        <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-1 w-8 h-8 flex items-center justify-center shrink-0 shadow-sm" />
+                      <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform" title={i.nombre}>
+                        <User className="w-4 h-4 text-slate-500" fill="currentColor" />
                       </span>
                       <span className="font-medium group-hover:underline">{i.nombre} {i.apellidos}</span>
                     </Link>
@@ -217,8 +217,8 @@ export function Incidencias() {
                 <span className="block text-xs text-slate-500 mb-1">Repartidor</span>
                 {i.nombre ? (
                   <Link to={`/repartidores`} className="text-sm font-medium text-slate-700 truncate flex items-center gap-1 hover:text-blue-600 transition-colors">
-                    <span title={i.nombre}>
-                      <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-0.5 w-6 h-6 flex items-center justify-center shrink-0 shadow-sm" />
+                    <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center shrink-0 shadow-sm" title={i.nombre}>
+                      <User className="w-3 h-3 text-slate-500" fill="currentColor" />
                     </span>
                     <span className="truncate">{i.nombre} {i.apellidos}</span>
                   </Link>
