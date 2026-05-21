@@ -58,7 +58,7 @@ export function Entregas() {
       id_repartidor: entrega.id_repartidor || '',
       estado_entrega: entrega.estado_entrega || 'Activa',
       observaciones: entrega.observaciones || '',
-      materiales: []
+      materiales: entrega.materiales || []
     });
     setIsModalOpen(true);
   };
@@ -73,7 +73,8 @@ export function Entregas() {
         // Find existing entrega to see if we are closing it
         const currentEntrega = entregas.find(ent => ent.id_entrega === editingId);
         const wasActiva = currentEntrega && currentEntrega.estado_entrega === 'Activa';
-        const isClosing = formData.estado_entrega === 'Cerrada' || formData.estado_entrega === 'Devuelta';
+        const isActiva = formData.estado_entrega === 'Activa';
+        const validMats = formData.materiales.filter(m => m.id_material && m.cantidad > 0);
         
         await updateDoc(doc(db, 'entregas', editingId), {
            id_repartidor: formData.id_repartidor,
@@ -81,11 +82,12 @@ export function Entregas() {
            apellidos: repartidor?.apellidos || '',
            estado_entrega: formData.estado_entrega,
            observaciones: formData.observaciones,
+           materiales: validMats,
            fecha_actualizacion: serverTimestamp(),
         });
         
-        // Revert stock if closed
-        if (wasActiva && isClosing && currentEntrega.materiales?.length > 0) {
+        // Revert stock if it was Activa previously
+        if (wasActiva && currentEntrega?.materiales?.length > 0) {
            for (const m of currentEntrega.materiales) {
              if (m.id_material) {
                await updateDoc(doc(db, 'materiales', m.id_material), {
@@ -96,6 +98,18 @@ export function Entregas() {
              }
            }
         }
+        
+        // Apply stock if the new state is Activa
+        if (isActiva) {
+           for (const m of validMats) {
+             await updateDoc(doc(db, 'materiales', m.id_material), {
+               stock_disponible: increment(-m.cantidad),
+               stock_asignado: increment(m.cantidad),
+               fecha_actualizacion: serverTimestamp()
+             });
+           }
+        }
+
       } else {
         const validMats = formData.materiales.filter(m => m.id_material && m.cantidad > 0);
         
@@ -364,11 +378,10 @@ export function Entregas() {
                 </select>
               </div>
               {/* Material Selector */}
-              {!editingId && (
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-slate-700">Materiales Asignados</label>
-                    <button
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-medium text-slate-700">Materiales Asignados</label>
+                  <button
                       type="button"
                       onClick={() => setFormData({...formData, materiales: [...formData.materiales, { id_material: '', nombre_material: '', cantidad: 1, nota: '' }]})}
                       className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -432,7 +445,6 @@ export function Entregas() {
                     <p className="text-xs text-slate-500 text-center py-2">No se han agregado materiales</p>
                   )}
                 </div>
-              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
