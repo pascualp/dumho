@@ -4,6 +4,7 @@ import { Package, Users, Home, ClipboardList, AlertTriangle, LogOut, FileText, M
 import { useState, useEffect } from 'react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export function Layout() {
   const { user, logout } = useAuthStore();
@@ -101,8 +102,19 @@ export function Layout() {
             </span>
           </div>
         </header>
-        <div className="p-4 sm:p-8 flex-1 overflow-auto">
-          <Outlet />
+        <div className="p-4 sm:p-8 flex-1 overflow-auto relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="h-full w-full"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>

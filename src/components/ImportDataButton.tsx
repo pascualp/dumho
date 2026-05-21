@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { addDoc, collection, getDocs, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { addDoc, collection, getDocs, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Upload } from 'lucide-react';
+import { Upload, Trash2 } from 'lucide-react';
 
 export function ImportDataButton() {
   const [loading, setLoading] = useState(false);
@@ -147,16 +147,45 @@ export function ImportDataButton() {
     setLoading(false);
   };
 
+  const handleClean = async () => {
+    if (!window.confirm("¿Seguro que deseas BORRAR TODOS LOS DATOS (Repartidores, Materiales, Entregas, Incidencias)? Esto no se puede deshacer.")) return;
+    setLoading(true);
+    try {
+      const collectionsToClean = ['repartidores', 'materiales', 'entregas', 'incidencias'];
+      for (const coll of collectionsToClean) {
+        const snap = await getDocs(collection(db, coll));
+        for (const docSnap of snap.docs) {
+          await deleteDoc(doc(db, coll, docSnap.id));
+        }
+      }
+      alert('Base de datos limpiada correctamente.');
+    } catch (e) {
+      console.error(e);
+      alert('Error al limpiar la base de datos');
+    }
+    setLoading(false);
+  };
+
   if (done) return null;
 
   return (
-    <button 
-      onClick={handleImport}
-      disabled={loading}
-      className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-    >
-      <Upload className="w-5 h-5" />
-      {loading ? 'Importando...' : 'Importar Datos (Lista enviada)'}
-    </button>
+    <div className="flex gap-2">
+      <button 
+        onClick={handleClean}
+        disabled={loading}
+        className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition"
+      >
+        <Trash2 className="w-5 h-5" />
+        {loading ? 'Borrando...' : 'Limpiar Todo'}
+      </button>
+      <button 
+        onClick={handleImport}
+        disabled={loading}
+        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+      >
+        <Upload className="w-5 h-5" />
+        {loading ? 'Importando...' : 'Importar Datos'}
+      </button>
+    </div>
   );
 }

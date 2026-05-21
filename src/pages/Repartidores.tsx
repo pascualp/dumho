@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Users, Plus, X, Edit2 } from 'lucide-react';
 import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { getEmojiForName } from '../lib/emojis';
 
 export function Repartidores() {
   const [reps, setReps] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filterZona, setFilterZona] = useState<string>('Todas');
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
@@ -88,6 +90,22 @@ export function Repartidores() {
         </button>
       </div>
 
+      <div className="flex bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <label className="flex items-center gap-3 text-sm font-medium text-slate-700 w-full sm:w-auto">
+          Filtrar por Zona:
+          <select 
+            value={filterZona} 
+            onChange={(e) => setFilterZona(e.target.value)}
+            className="flex-1 sm:w-64 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="Todas">Todas las Zonas</option>
+            {Array.from(new Set(reps.map(r => r.zona).filter(Boolean))).sort().map(z => (
+              <option key={String(z)} value={String(z)}>{String(z)}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
@@ -100,11 +118,14 @@ export function Repartidores() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {reps.map(r => (
+            {reps
+              .filter(r => filterZona === 'Todas' || r.zona === filterZona)
+              .sort((a, b) => (a.zona || '').localeCompare(b.zona || '') || (a.nombre || '').localeCompare(b.nombre || ''))
+              .map(r => (
               <tr key={r.id_repartidor} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-                    {r.nombre.charAt(0)}{r.apellidos.charAt(0)}
+                  <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-lg shrink-0 shadow-sm" title={r.nombre}>
+                    {getEmojiForName(r.nombre)}
                   </span>
                   {r.nombre} {r.apellidos}
                 </td>
@@ -132,12 +153,15 @@ export function Repartidores() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:hidden">
-        {reps.map(r => (
+        {reps
+          .filter(r => filterZona === 'Todas' || r.zona === filterZona)
+          .sort((a, b) => (a.zona || '').localeCompare(b.zona || '') || (a.nombre || '').localeCompare(b.nombre || ''))
+          .map(r => (
           <div key={r.id_repartidor} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
-                  {r.nombre.charAt(0)}{r.apellidos.charAt(0)}
+                <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-2xl shrink-0 shadow-sm">
+                  {getEmojiForName(r.nombre)}
                 </span>
                 <div>
                   <p className="font-medium text-slate-900">{r.nombre} {r.apellidos}</p>
