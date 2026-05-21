@@ -344,7 +344,7 @@ export function Entregas() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[90dvh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h2 className="text-xl font-bold text-slate-900">Registrar Entrega</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -391,7 +391,17 @@ export function Entregas() {
                     </button>
                   </div>
                   {formData.materiales.map((m, idx) => (
-                    <div key={idx} className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg">
+                    <div key={idx} className="relative flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMats = formData.materiales.filter((_, i) => i !== idx);
+                          setFormData({...formData, materiales: newMats});
+                        }}
+                        className="absolute -right-2 -top-2 bg-white text-red-500 hover:bg-red-50 p-1 rounded-full border border-slate-200 shadow-sm z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                       <div className="flex gap-2 items-center">
                         <select
                           value={m.id_material}
@@ -401,11 +411,11 @@ export function Entregas() {
                             newMats[idx] = { ...newMats[idx], id_material: e.target.value, nombre_material: mat?.nombre_material || '' };
                             setFormData({...formData, materiales: newMats});
                           }}
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                          className="flex-1 w-full min-w-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         >
                           <option value="" disabled>Seleccionar...</option>
                           {materialesList.map(mat => (
-                            <option key={mat.id} value={mat.id}>{mat.nombre_material} (Disp: {mat.stock_disponible})</option>
+                            <option key={mat.id} value={mat.id} className="truncate">{mat.nombre_material} (Disp: {mat.stock_disponible})</option>
                           ))}
                         </select>
                         <input
@@ -417,19 +427,9 @@ export function Entregas() {
                             newMats[idx].cantidad = parseInt(e.target.value) || 1;
                             setFormData({...formData, materiales: newMats});
                           }}
-                          className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                          className="w-20 shrink-0 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                           placeholder="Cant"
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMats = formData.materiales.filter((_, i) => i !== idx);
-                            setFormData({...formData, materiales: newMats});
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
                       <input
                         type="text"
