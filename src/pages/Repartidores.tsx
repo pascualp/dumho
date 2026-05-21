@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Users, Plus, X, Edit2 } from 'lucide-react';
+import { Users, Plus, X, Edit2, User } from 'lucide-react';
 import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { getEmojiForName } from '../lib/emojis';
 
 export function Repartidores() {
   const [reps, setReps] = useState<any[]>([]);
@@ -125,7 +124,7 @@ export function Repartidores() {
               <tr key={r.id_repartidor} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
                   <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-lg shrink-0 shadow-sm" title={r.nombre}>
-                    {getEmojiForName(r.nombre)}
+                    <User className="w-4 h-4 text-slate-500" />
                   </span>
                   {r.nombre} {r.apellidos}
                 </td>
@@ -161,7 +160,7 @@ export function Repartidores() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-2xl shrink-0 shadow-sm">
-                  {getEmojiForName(r.nombre)}
+                  <User className="w-5 h-5 text-slate-500" />
                 </span>
                 <div>
                   <p className="font-medium text-slate-900">{r.nombre} {r.apellidos}</p>

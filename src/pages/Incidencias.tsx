@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Plus, X, Edit2 } from 'lucide-react';
+import { AlertTriangle, Plus, X, Edit2, User } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
-import { getEmojiForName } from '../lib/emojis';
 import { Link } from 'react-router-dom';
 
 export function Incidencias() {
@@ -150,7 +149,9 @@ export function Incidencias() {
                 <td className="p-4 text-slate-600">
                   {i.nombre ? (
                     <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
-                      <span className="text-lg group-hover:scale-110 transition-transform" title={i.nombre}>{getEmojiForName(i.nombre)}</span>
+                      <span className="text-lg group-hover:scale-110 transition-transform" title={i.nombre}>
+                        <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-1 w-8 h-8 flex items-center justify-center shrink-0 shadow-sm" />
+                      </span>
                       <span className="font-medium group-hover:underline">{i.nombre} {i.apellidos}</span>
                     </Link>
                   ) : <span className="text-slate-400">N/A</span>}
@@ -216,7 +217,9 @@ export function Incidencias() {
                 <span className="block text-xs text-slate-500 mb-1">Repartidor</span>
                 {i.nombre ? (
                   <Link to={`/repartidores`} className="text-sm font-medium text-slate-700 truncate flex items-center gap-1 hover:text-blue-600 transition-colors">
-                    <span title={i.nombre}>{getEmojiForName(i.nombre)}</span>
+                    <span title={i.nombre}>
+                      <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-0.5 w-6 h-6 flex items-center justify-center shrink-0 shadow-sm" />
+                    </span>
                     <span className="truncate">{i.nombre} {i.apellidos}</span>
                   </Link>
                 ) : <span className="text-sm font-medium text-slate-400 block p-1">N/A</span>}

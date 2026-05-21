@@ -3,7 +3,6 @@ import { ClipboardList, Plus, X, Edit2, User, Package } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
-import { getEmojiForName } from '../lib/emojis';
 import { Link } from 'react-router-dom';
 
 export function Entregas() {
@@ -209,7 +208,9 @@ export function Entregas() {
                 <td className="p-4 text-slate-900 font-medium">{new Date(e.fecha_entrega).toLocaleDateString()}</td>
                 <td className="p-4 text-slate-600">
                   <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
-                    <span className="text-lg group-hover:scale-110 transition-transform" title={e.nombre}>{getEmojiForName(e.nombre)}</span>
+                    <span className="text-lg group-hover:scale-110 transition-transform" title={e.nombre}>
+                      <User className="w-4 h-4 text-slate-500 bg-slate-100 rounded-full p-1 w-8 h-8 flex items-center justify-center shrink-0 shadow-sm" />
+                    </span>
                     <span className="font-medium group-hover:underline">{e.nombre} {e.apellidos}</span>
                   </Link>
                 </td>
@@ -282,8 +283,8 @@ export function Entregas() {
           <div key={e.id_entrega} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <Link to={`/repartidores`} className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-2xl shadow-sm group-hover:scale-110 transition-transform">
-                  {getEmojiForName(e.nombre)}
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                  <User className="w-5 h-5 text-slate-500" />
                 </div>
                 <div>
                   <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{e.nombre} {e.apellidos}</p>
