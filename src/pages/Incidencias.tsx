@@ -114,7 +114,7 @@ export function Incidencias() {
           <tbody className="divide-y divide-slate-200">
             {incidencias.map(i => (
               <tr key={i.id_incidencia} className="hover:bg-slate-50 transition-colors">
-                <td className="p-4 text-slate-900 font-medium">{new Date(...(i.fecha_incidencia ? [i.fecha_incidencia] : [])).toLocaleDateString()}</td>
+                <td className="p-4 text-slate-900 font-medium">{i.fecha_incidencia ? new Date(i.fecha_incidencia).toLocaleDateString() : 'N/A'}</td>
                 <td className="p-4 text-slate-600">{i.nombre ? `${i.nombre} ${i.apellidos}` : 'N/A'}</td>
                 <td className="p-4 text-slate-600">{i.nombre_material || 'N/A'}</td>
                 <td className="p-4 text-slate-600">{i.tipo_incidencia}</td>
@@ -149,7 +149,7 @@ export function Incidencias() {
                 </div>
                 <div>
                   <p className="font-medium text-slate-900">{i.tipo_incidencia}</p>
-                  <p className="text-xs text-slate-500">{new Date(...(i.fecha_incidencia ? [i.fecha_incidencia] : [])).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500">{i.fecha_incidencia ? new Date(i.fecha_incidencia).toLocaleDateString() : 'N/A'}</p>
                 </div>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${

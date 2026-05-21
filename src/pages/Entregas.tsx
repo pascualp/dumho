@@ -88,6 +88,7 @@ export function Entregas() {
               <th className="p-4">Repartidor</th>
               <th className="p-4">Estado</th>
               <th className="p-4">Responsable</th>
+              <th className="p-4">Detalles / Materiales</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -105,11 +106,21 @@ export function Entregas() {
                   </span>
                 </td>
                 <td className="p-4 text-slate-600">{e.entregado_por}</td>
+                <td className="p-4 text-slate-600">
+                  <div className="max-w-xs truncate" title={
+                    (e.materiales?.map((m: any) => `${m.cantidad}x ${m.nombre_material}${m.nota ? m.nota : ''}`).join(', ') || '') + 
+                    (e.observaciones ? `\n${e.observaciones}` : '')
+                  }>
+                    {e.materiales?.map((m: any) => `${m.cantidad}x ${m.nombre_material}${m.nota ? m.nota : ''}`).join(', ')}
+                    {e.materiales?.length > 0 && e.observaciones ? ' | ' : ''}
+                    {e.observaciones || (e.materiales?.length ? '' : '-')}
+                  </div>
+                </td>
               </tr>
             ))}
             {entregas.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-slate-500 flex flex-col items-center">
+                <td colSpan={5} className="p-8 text-center text-slate-500 flex flex-col items-center">
                   <ClipboardList className="w-8 h-8 text-slate-300 mb-2" />
                   No hay entregas registradas.
                 </td>
@@ -145,6 +156,16 @@ export function Entregas() {
                 <span className="font-medium text-slate-500">Resp:</span> {e.entregado_por}
               </div>
             </div>
+            {(e.observaciones || e.materiales?.length > 0) && (
+              <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg whitespace-pre-wrap">
+                {e.materiales?.length > 0 && (
+                  <div className="mb-1 font-medium text-slate-700">
+                    {e.materiales.map((m: any) => `${m.cantidad}x ${m.nombre_material}${m.nota ? m.nota : ''}`).join(', ')}
+                  </div>
+                )}
+                {e.observaciones && <div>{e.observaciones}</div>}
+              </div>
+            )}
           </div>
         ))}
         {entregas.length === 0 && (

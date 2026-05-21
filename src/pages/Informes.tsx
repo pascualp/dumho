@@ -40,7 +40,11 @@ export function Informes() {
         { key: 'fecha_entrega', label: 'Fecha', format: (v) => v ? new Date(v).toLocaleDateString() : 'N/A' },
         { key: 'estado_entrega', label: 'Estado' },
         { key: 'entregado_por', label: 'Registrado por' },
-        { key: 'materiales', label: 'Materiales Entregados', format: (v) => Array.isArray(v) ? v.map(m => `Cant: ${m.cantidad}`).join(', ') : 'Ninguno' } // we dont have material name easily here without join, but quantity helps
+        { key: 'materiales', label: 'Materiales Entregados', format: (v, doc) => {
+          const mats = Array.isArray(v) ? v.map((m: any) => `${m.cantidad}x ${m.nombre_material}${m.nota ? m.nota : ''}`).join(', ') : '';
+          const obs = doc.observaciones ? `[Obs: ${doc.observaciones}]` : '';
+          return [mats, obs].filter(Boolean).join(' | ') || 'Ninguno';
+        }}
       ]
     },
     incidencias: {
