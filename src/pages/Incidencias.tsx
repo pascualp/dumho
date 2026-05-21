@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { AlertTriangle, Plus, X, Edit2 } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
+import { getEmojiForName } from '../lib/emojis';
+import { Link } from 'react-router-dom';
 
 export function Incidencias() {
   const { user } = useAuthStore();
@@ -10,6 +12,7 @@ export function Incidencias() {
   const [repartidores, setRepartidores] = useState<any[]>([]);
   const [materiales, setMateriales] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     id_repartidor: '',
@@ -52,26 +55,54 @@ export function Incidencias() {
     }
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openEditModal = (incidencia: any) => {
+    setEditingId(incidencia.id_incidencia);
+    setFormData({
+      id_repartidor: incidencia.id_repartidor || '',
+      id_material: incidencia.id_material || '',
+      tipo_incidencia: incidencia.tipo_incidencia || 'Daño',
+      estado_incidencia: incidencia.estado_incidencia || 'Abierta',
+      observaciones: incidencia.observaciones || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const repartidor = repartidores.find(r => r.id === formData.id_repartidor);
       const material = materiales.find(m => m.id === formData.id_material);
       
-      await addDoc(collection(db, 'incidencias'), {
-        id_repartidor: formData.id_repartidor,
-        nombre: repartidor?.nombre || '',
-        apellidos: repartidor?.apellidos || '',
-        id_material: formData.id_material,
-        nombre_material: material?.nombre_material || '',
-        tipo_incidencia: formData.tipo_incidencia,
-        estado_incidencia: formData.estado_incidencia,
-        observaciones: formData.observaciones,
-        reportado_por: user?.email || 'admin',
-        fecha_incidencia: new Date().toISOString(),
-        fecha_creacion: serverTimestamp(),
-      });
+      if (editingId) {
+        const { updateDoc, doc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'incidencias', editingId), {
+           id_repartidor: formData.id_repartidor,
+           nombre: repartidor?.nombre || '',
+           apellidos: repartidor?.apellidos || '',
+           id_material: formData.id_material,
+           nombre_material: material?.nombre_material || '',
+           tipo_incidencia: formData.tipo_incidencia,
+           estado_incidencia: formData.estado_incidencia,
+           observaciones: formData.observaciones,
+           fecha_actualizacion: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(db, 'incidencias'), {
+          id_repartidor: formData.id_repartidor,
+          nombre: repartidor?.nombre || '',
+          apellidos: repartidor?.apellidos || '',
+          id_material: formData.id_material,
+          nombre_material: material?.nombre_material || '',
+          tipo_incidencia: formData.tipo_incidencia,
+          estado_incidencia: formData.estado_incidencia,
+          observaciones: formData.observaciones,
+          reportado_por: user?.email || 'admin',
+          fecha_incidencia: new Date().toISOString(),
+          fecha_creacion: serverTimestamp(),
+        });
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         id_repartidor: '',
         id_material: '',
@@ -81,7 +112,7 @@ export function Incidencias() {
       });
     } catch (err) {
       console.error(err);
-      alert('Error creando incidencia');
+      alert('Error guardando incidencia');
     }
   };
 
@@ -109,14 +140,28 @@ export function Incidencias() {
               <th className="p-4">Material</th>
               <th className="p-4">Tipo</th>
               <th className="p-4">Estado</th>
+              <th className="p-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
             {incidencias.map(i => (
               <tr key={i.id_incidencia} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 text-slate-900 font-medium">{i.fecha_incidencia ? new Date(i.fecha_incidencia).toLocaleDateString() : 'N/A'}</td>
-                <td className="p-4 text-slate-600">{i.nombre ? `${i.nombre} ${i.apellidos}` : 'N/A'}</td>
-                <td className="p-4 text-slate-600">{i.nombre_material || 'N/A'}</td>
+                <td className="p-4 text-slate-600">
+                  {i.nombre ? (
+                    <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
+                      <span className="text-lg group-hover:scale-110 transition-transform" title={i.nombre}>{getEmojiForName(i.nombre)}</span>
+                      <span className="font-medium group-hover:underline">{i.nombre} {i.apellidos}</span>
+                    </Link>
+                  ) : <span className="text-slate-400">N/A</span>}
+                </td>
+                <td className="p-4 text-slate-600">
+                  {i.nombre_material ? (
+                    <Link to={`/materiales`} className="hover:text-blue-600 transition-colors hover:underline font-medium">
+                      {i.nombre_material}
+                    </Link>
+                  ) : <span className="text-slate-400">N/A</span>}
+                </td>
                 <td className="p-4 text-slate-600">{i.tipo_incidencia}</td>
                 <td className="p-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -125,11 +170,19 @@ export function Incidencias() {
                     {i.estado_incidencia}
                   </span>
                 </td>
+                <td className="p-4 text-right">
+                  <button 
+                    onClick={() => openEditModal(i)}
+                    className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             ))}
             {incidencias.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500 flex flex-col items-center">
+                <td colSpan={6} className="p-8 text-center text-slate-500 flex flex-col items-center">
                   <AlertTriangle className="w-8 h-8 text-slate-300 mb-2" />
                   No hay incidencias registradas.
                 </td>
@@ -161,16 +214,29 @@ export function Incidencias() {
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                 <span className="block text-xs text-slate-500 mb-1">Repartidor</span>
-                <span className="text-sm font-medium text-slate-700 truncate block">
-                  {i.nombre ? `${i.nombre} ${i.apellidos}` : 'N/A'}
-                </span>
+                {i.nombre ? (
+                  <Link to={`/repartidores`} className="text-sm font-medium text-slate-700 truncate flex items-center gap-1 hover:text-blue-600 transition-colors">
+                    <span title={i.nombre}>{getEmojiForName(i.nombre)}</span>
+                    <span className="truncate">{i.nombre} {i.apellidos}</span>
+                  </Link>
+                ) : <span className="text-sm font-medium text-slate-400 block p-1">N/A</span>}
               </div>
               <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                 <span className="block text-xs text-slate-500 mb-1">Material</span>
-                <span className="text-sm font-medium text-slate-700 truncate block">
-                  {i.nombre_material || 'N/A'}
-                </span>
+                {i.nombre_material ? (
+                  <Link to={`/materiales`} className="text-sm font-medium text-slate-700 truncate block hover:text-blue-600 transition-colors">
+                    {i.nombre_material}
+                  </Link>
+                ) : <span className="text-sm font-medium text-slate-400 block p-1">N/A</span>}
               </div>
+            </div>
+            <div className="flex justify-end pt-2 border-t border-slate-100 mt-2">
+              <button 
+                onClick={() => openEditModal(i)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-sm"
+              >
+                <Edit2 className="w-4 h-4" /> Editar
+              </button>
             </div>
           </div>
         ))}
@@ -191,7 +257,7 @@ export function Incidencias() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Repartidor (Opcional)</label>
                 <select 

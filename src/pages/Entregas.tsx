@@ -1,21 +1,33 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, Plus, X } from 'lucide-react';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ClipboardList, Plus, X, Edit2, User, Package } from 'lucide-react';
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import { getEmojiForName } from '../lib/emojis';
+import { Link } from 'react-router-dom';
 
 export function Entregas() {
   const { user } = useAuthStore();
   const [entregas, setEntregas] = useState<any[]>([]);
   const [repartidores, setRepartidores] = useState<any[]>([]);
+  const [materialesList, setMaterialesList] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterZona, setFilterZona] = useState<string>('Todas');
   const [formData, setFormData] = useState({
     id_repartidor: '',
     estado_entrega: 'Activa',
-    observaciones: ''
+    observaciones: '',
+    materiales: [] as { id_material: string, nombre_material: string, cantidad: number, nota: string }[]
   });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'materiales'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMaterialesList(data);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'entregas'), orderBy('fecha_entrega', 'desc'));
@@ -40,30 +52,87 @@ export function Entregas() {
     return () => unsubRepartidores();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openEditModal = (entrega: any) => {
+    setEditingId(entrega.id_entrega);
+    setFormData({
+      id_repartidor: entrega.id_repartidor || '',
+      estado_entrega: entrega.estado_entrega || 'Activa',
+      observaciones: entrega.observaciones || '',
+      materiales: []
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const repartidor = repartidores.find(r => r.id === formData.id_repartidor);
+      const { updateDoc, doc } = await import('firebase/firestore');
       
-      await addDoc(collection(db, 'entregas'), {
-        id_repartidor: formData.id_repartidor,
-        nombre: repartidor?.nombre || '',
-        apellidos: repartidor?.apellidos || '',
-        estado_entrega: formData.estado_entrega,
-        observaciones: formData.observaciones,
-        entregado_por: user?.email || 'admin',
-        fecha_entrega: new Date().toISOString(),
-        fecha_creacion: serverTimestamp(),
-      });
+      if (editingId) {
+        // Find existing entrega to see if we are closing it
+        const currentEntrega = entregas.find(ent => ent.id_entrega === editingId);
+        const wasActiva = currentEntrega && currentEntrega.estado_entrega === 'Activa';
+        const isClosing = formData.estado_entrega === 'Cerrada' || formData.estado_entrega === 'Devuelta';
+        
+        await updateDoc(doc(db, 'entregas', editingId), {
+           id_repartidor: formData.id_repartidor,
+           nombre: repartidor?.nombre || '',
+           apellidos: repartidor?.apellidos || '',
+           estado_entrega: formData.estado_entrega,
+           observaciones: formData.observaciones,
+           fecha_actualizacion: serverTimestamp(),
+        });
+        
+        // Revert stock if closed
+        if (wasActiva && isClosing && currentEntrega.materiales?.length > 0) {
+           for (const m of currentEntrega.materiales) {
+             if (m.id_material) {
+               await updateDoc(doc(db, 'materiales', m.id_material), {
+                 stock_disponible: increment(m.cantidad),
+                 stock_asignado: increment(-m.cantidad),
+                 fecha_actualizacion: serverTimestamp()
+               });
+             }
+           }
+        }
+      } else {
+        const validMats = formData.materiales.filter(m => m.id_material && m.cantidad > 0);
+        
+        await addDoc(collection(db, 'entregas'), {
+          id_repartidor: formData.id_repartidor,
+          nombre: repartidor?.nombre || '',
+          apellidos: repartidor?.apellidos || '',
+          estado_entrega: formData.estado_entrega,
+          observaciones: formData.observaciones,
+          materiales: validMats,
+          entregado_por: user?.email || 'admin',
+          fecha_entrega: new Date().toISOString(),
+          fecha_creacion: serverTimestamp(),
+        });
+        
+        // Update stock for newly assigned materials
+        if (formData.estado_entrega === 'Activa') {
+           for (const m of validMats) {
+             await updateDoc(doc(db, 'materiales', m.id_material), {
+               stock_disponible: increment(-m.cantidad),
+               stock_asignado: increment(m.cantidad),
+               fecha_actualizacion: serverTimestamp()
+             });
+           }
+        }
+      }
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         id_repartidor: '',
         estado_entrega: 'Activa',
-        observaciones: ''
+        observaciones: '',
+        materiales: []
       });
     } catch (err) {
       console.error(err);
-      alert('Error creando entrega');
+      alert('Error guardando la entrega');
     }
   };
 
@@ -108,6 +177,7 @@ export function Entregas() {
               <th className="p-4">Estado</th>
               <th className="p-4">Responsable</th>
               <th className="p-4">Detalles / Materiales</th>
+              <th className="p-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -123,9 +193,11 @@ export function Entregas() {
                 return (
               <tr key={e.id_entrega} className="hover:bg-slate-50 transition-colors">
                 <td className="p-4 text-slate-900 font-medium">{new Date(e.fecha_entrega).toLocaleDateString()}</td>
-                <td className="p-4 text-slate-600 flex items-center gap-2">
-                  <span className="text-lg" title={e.nombre}>{getEmojiForName(e.nombre)}</span>
-                  {e.nombre} {e.apellidos}
+                <td className="p-4 text-slate-600">
+                  <Link to={`/repartidores`} className="flex items-center gap-2 hover:text-blue-600 transition-colors group">
+                    <span className="text-lg group-hover:scale-110 transition-transform" title={e.nombre}>{getEmojiForName(e.nombre)}</span>
+                    <span className="font-medium group-hover:underline">{e.nombre} {e.apellidos}</span>
+                  </Link>
                 </td>
                 <td className="p-4 text-slate-600">{zona}</td>
                 <td className="p-4">
@@ -159,12 +231,20 @@ export function Entregas() {
                     {!e.materiales?.length && !e.observaciones && '-'}
                   </div>
                 </td>
+                <td className="p-4 text-right">
+                  <button 
+                    onClick={() => openEditModal(e)}
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             );
             })}
             {entregas.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500 flex flex-col items-center">
+                <td colSpan={7} className="p-8 text-center text-slate-500 flex flex-col items-center">
                   <ClipboardList className="w-8 h-8 text-slate-300 mb-2" />
                   No hay entregas registradas.
                 </td>
@@ -187,15 +267,15 @@ export function Entregas() {
             return (
           <div key={e.id_entrega} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-2xl shadow-sm">
+              <Link to={`/repartidores`} className="flex items-center gap-3 group">
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-2xl shadow-sm group-hover:scale-110 transition-transform">
                   {getEmojiForName(e.nombre)}
                 </div>
                 <div>
-                  <p className="font-medium text-slate-900">{e.nombre} {e.apellidos}</p>
+                  <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{e.nombre} {e.apellidos}</p>
                   <p className="text-xs text-slate-500">{new Date(e.fecha_entrega).toLocaleDateString()}</p>
                 </div>
-              </div>
+              </Link>
               <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
                 e.estado_entrega === 'Activa' ? 'bg-blue-100 text-blue-700' : 
                 e.estado_entrega === 'Cerrada' ? 'bg-green-100 text-green-700' : 
@@ -210,25 +290,33 @@ export function Entregas() {
               </div>
             </div>
             {(e.observaciones || e.materiales?.length > 0) && (
-              <div className="text-sm text-slate-600 bg-slate-50 border border-slate-100 p-3 rounded-lg flex flex-col gap-2">
-                {e.materiales?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {e.materiales.map((m: any, idx: number) => (
-                      <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-sm">
-                        <span className="font-bold mr-1">{m.cantidad}x</span> 
-                        {m.nombre_material}
-                        {m.nota && <span className="ml-1 text-slate-500">{m.nota}</span>}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {e.observaciones && (
-                  <div className="text-slate-500 whitespace-pre-wrap mt-1">
-                    {e.observaciones}
-                  </div>
-                )}
-              </div>
+               <div className="text-sm text-slate-600 bg-slate-50 border border-slate-100 p-3 rounded-lg flex flex-col gap-2">
+                 {e.materiales?.length > 0 && (
+                   <div className="flex flex-wrap gap-1.5">
+                     {e.materiales.map((m: any, idx: number) => (
+                       <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-sm">
+                         <span className="font-bold mr-1">{m.cantidad}x</span> 
+                         {m.nombre_material}
+                         {m.nota && <span className="ml-1 text-slate-500">{m.nota}</span>}
+                       </span>
+                     ))}
+                   </div>
+                 )}
+                 {e.observaciones && (
+                   <div className="text-slate-500 whitespace-pre-wrap mt-1">
+                     {e.observaciones}
+                   </div>
+                 )}
+               </div>
             )}
+            <div className="flex justify-end pt-2">
+              <button 
+                onClick={() => openEditModal(e)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-sm"
+              >
+                <Edit2 className="w-4 h-4" /> Editar
+              </button>
+            </div>
           </div>
         )})}
         {entregas.length === 0 && (
@@ -248,7 +336,7 @@ export function Entregas() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Repartidor</label>
                 <select 
@@ -275,6 +363,77 @@ export function Entregas() {
                   <option value="Con incidencia">Con incidencia</option>
                 </select>
               </div>
+              {/* Material Selector */}
+              {!editingId && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-medium text-slate-700">Materiales Asignados</label>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, materiales: [...formData.materiales, { id_material: '', nombre_material: '', cantidad: 1, nota: '' }]})}
+                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" /> Agregar Material
+                    </button>
+                  </div>
+                  {formData.materiales.map((m, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <select
+                        value={m.id_material}
+                        onChange={e => {
+                          const mat = materialesList.find(x => x.id === e.target.value);
+                          const newMats = [...formData.materiales];
+                          newMats[idx] = { ...newMats[idx], id_material: e.target.value, nombre_material: mat?.nombre_material || '' };
+                          setFormData({...formData, materiales: newMats});
+                        }}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      >
+                        <option value="" disabled>Seleccionar...</option>
+                        {materialesList.map(mat => (
+                          <option key={mat.id} value={mat.id}>{mat.nombre_material} (Disp: {mat.stock_disponible})</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={m.cantidad}
+                        onChange={e => {
+                          const newMats = [...formData.materiales];
+                          newMats[idx].cantidad = parseInt(e.target.value) || 1;
+                          setFormData({...formData, materiales: newMats});
+                        }}
+                        className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="Cant"
+                      />
+                      <input
+                        type="text"
+                        value={m.nota}
+                        onChange={e => {
+                          const newMats = [...formData.materiales];
+                          newMats[idx].nota = e.target.value;
+                          setFormData({...formData, materiales: newMats});
+                        }}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="Nota..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMats = formData.materiales.filter((_, i) => i !== idx);
+                          setFormData({...formData, materiales: newMats});
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.materiales.length === 0 && (
+                    <p className="text-xs text-slate-500 text-center py-2">No se han agregado materiales</p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
                 <textarea 

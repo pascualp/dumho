@@ -54,10 +54,19 @@ export function Materiales() {
     e.preventDefault();
     try {
       if (editingId) {
-        // Obtenemos el material original para calcular la diferencia de stock si stock_total cambió.
-        // Simulamos un approach simple donde actualizamos los totales.
+        const currentMat = materiales.find(m => m.id_material === editingId);
+        const oldTotal = currentMat?.stock_total || 0;
+        const newTotal = formData.stock_total;
+        const diff = newTotal - oldTotal;
+
+        const additionalFields: any = {};
+        if (diff !== 0) {
+           additionalFields.stock_disponible = (currentMat?.stock_disponible || 0) + diff;
+        }
+
         await updateDoc(doc(db, 'materiales', editingId), {
           ...formData,
+          ...additionalFields,
           fecha_actualizacion: serverTimestamp(),
         });
       } else {
