@@ -390,34 +390,46 @@ export function Entregas() {
                     </button>
                   </div>
                   {formData.materiales.map((m, idx) => (
-                    <div key={idx} className="flex gap-2 items-start">
-                      <select
-                        value={m.id_material}
-                        onChange={e => {
-                          const mat = materialesList.find(x => x.id === e.target.value);
-                          const newMats = [...formData.materiales];
-                          newMats[idx] = { ...newMats[idx], id_material: e.target.value, nombre_material: mat?.nombre_material || '' };
-                          setFormData({...formData, materiales: newMats});
-                        }}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                      >
-                        <option value="" disabled>Seleccionar...</option>
-                        {materialesList.map(mat => (
-                          <option key={mat.id} value={mat.id}>{mat.nombre_material} (Disp: {mat.stock_disponible})</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        value={m.cantidad}
-                        onChange={e => {
-                          const newMats = [...formData.materiales];
-                          newMats[idx].cantidad = parseInt(e.target.value) || 1;
-                          setFormData({...formData, materiales: newMats});
-                        }}
-                        className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                        placeholder="Cant"
-                      />
+                    <div key={idx} className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-lg">
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={m.id_material}
+                          onChange={e => {
+                            const mat = materialesList.find(x => x.id === e.target.value);
+                            const newMats = [...formData.materiales];
+                            newMats[idx] = { ...newMats[idx], id_material: e.target.value, nombre_material: mat?.nombre_material || '' };
+                            setFormData({...formData, materiales: newMats});
+                          }}
+                          className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        >
+                          <option value="" disabled>Seleccionar...</option>
+                          {materialesList.map(mat => (
+                            <option key={mat.id} value={mat.id}>{mat.nombre_material} (Disp: {mat.stock_disponible})</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          value={m.cantidad}
+                          onChange={e => {
+                            const newMats = [...formData.materiales];
+                            newMats[idx].cantidad = parseInt(e.target.value) || 1;
+                            setFormData({...formData, materiales: newMats});
+                          }}
+                          className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                          placeholder="Cant"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMats = formData.materiales.filter((_, i) => i !== idx);
+                            setFormData({...formData, materiales: newMats});
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                       <input
                         type="text"
                         value={m.nota}
@@ -426,19 +438,9 @@ export function Entregas() {
                           newMats[idx].nota = e.target.value;
                           setFormData({...formData, materiales: newMats});
                         }}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                        placeholder="Nota..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="Nota o detalle (opcional)..."
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMats = formData.materiales.filter((_, i) => i !== idx);
-                          setFormData({...formData, materiales: newMats});
-                        }}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
                     </div>
                   ))}
                   {formData.materiales.length === 0 && (
